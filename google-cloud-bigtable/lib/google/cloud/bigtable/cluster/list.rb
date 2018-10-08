@@ -49,7 +49,9 @@ module Google
             super(arr)
           end
 
-          # Whether there is a next page of instances.
+          # @private
+          #
+          # Whether there is a next page of clusters.
           #
           # @return [Boolean]
           #
@@ -66,6 +68,8 @@ module Google
             !token.nil?
           end
 
+          # @private
+          #
           # Retrieve the next page of clusters.
           #
           # @return [Cluster::List] The list of clusters.
@@ -94,6 +98,8 @@ module Google
             next_list
           end
 
+          # @private
+          #
           # Retrieves remaining results by repeatedly invoking {#next} until
           # {#next?} returns `false`. Calls the given block once for each
           # result, which is passed as the argument to the block.

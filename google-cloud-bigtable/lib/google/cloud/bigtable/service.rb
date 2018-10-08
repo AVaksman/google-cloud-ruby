@@ -168,11 +168,11 @@ module Google
         #   The value of +next_page_token+ returned by a previous call.
         # @return [Google::Bigtable::Admin::V2::ListInstancesResponse]
 
-        def list_instances token: nil
+        def list_instances
           execute do
             instances.list_instances(
               project_path,
-              page_token: token
+              page_token: nil
             )
           end
         end
@@ -255,11 +255,11 @@ module Google
         #   The value of +next_page_token+ returned by a previous call.
         # @return [Google::Bigtable::Admin::V2::ListClustersResponse]
 
-        def list_clusters instance_id, token: nil
+        def list_clusters instance_id
           execute do
             instances.list_clusters(
               instance_path(instance_id),
-              page_token: token
+              page_token: nil
             )
           end
         end

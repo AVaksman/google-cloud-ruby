@@ -46,6 +46,8 @@ module Google
             super(arr)
           end
 
+          # @private
+          #
           # Whether there is a next page of instances.
           #
           # @return [Boolean]
@@ -63,7 +65,9 @@ module Google
             !token.nil?
           end
 
-          # Retrieves the next page of instances.
+          # @private
+          #
+          # Retrieve the next page of instances.
           #
           # @return [Instance::List] The list of instances.
           #
@@ -88,6 +92,8 @@ module Google
             next_list
           end
 
+          # @private
+          #
           # Retrieves remaining results by repeatedly invoking {#next} until
           # {#next?} returns `false`. Calls the given block once for each
           # result, which is passed as the argument to the block.

@@ -544,6 +544,10 @@ module Google
         #     * Tablet 5 : `[other, )                => {"other", "zz"}`
         #   A hash in the form of `Google::Bigtable::Admin::V2::CreateTableRequest::Split`
         #   can also be provided.
+        # @param app_profile_id [String] The unique identifier for the app profile. Optional.
+        #   It is used only in data operations.
+        #   This value specifies routing for replication. If not specified, the
+        #   "default" application profile will be used.
         # @yield [column_families] A block for adding column_families.
         # @yieldparam [Hash{String => Google::Cloud::Bigtable::ColumnFamily}]
         #   Cluster map of cluster name and cluster object.
@@ -583,22 +587,27 @@ module Google
         #
         #   puts table
 
+        # add `app_profile_id` field to this method. this way `app_pprofile_id` could be passed
+        # to every `read` and `write` operation that is called on this table object. 
         def create_table \
             name,
             column_families: nil,
             granularity: nil,
             initial_splits: nil,
+            app_profile_id: nil,
             &block
           ensure_service!
-          Table.create(
-            service,
-            instance_id,
-            name,
-            column_families: column_families,
-            granularity: granularity,
-            initial_splits: initial_splits,
-            &block
-          )
+          table = Table.create(
+                    service,
+                    instance_id,
+                    name,
+                    column_families: column_families,
+                    granularity: granularity,
+                    initial_splits: initial_splits,
+                    &block
+                  )
+          table.app_pprofile_id = app_pprofile_id
+          table
         end
 
         # Create app profile for an instance with a routing policy.
@@ -899,6 +908,22 @@ module Google
         # @return [Google::Cloud::Bigtable::Instance]
 
         def self.from_grpc grpc, service
+          new(grpc, service)
+        end
+
+        # Add option to create Instance object from path
+        # @private
+        #
+        # Creates a new Instance instance from intance path.
+        # 
+        # @param path [String] Instance path.
+        #   Formatted instance path
+        #   +projects/<project>/instances/<instance>+
+        # @param service [Google::Cloud::Bigtable::Service]
+        # @return [Google::Cloud::Bigtable::Instance]
+
+        def self.from_path path, service
+          grpc = Google::Bigtable::Admin::V2::Instance.new(name: path)
           new(grpc, service)
         end
 

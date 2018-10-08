@@ -83,6 +83,8 @@ module Google
 
         # Retrieves the list of Bigtable instances for the project.
         #
+        # Tokens are not implemented. 
+        # This parameter should be removed from public API
         # @param token [String] The `token` value returned by the last call to
         #   `instances`; indicates that this is a continuation of a call
         #   and that the system should return the next page of data.
@@ -95,19 +97,26 @@ module Google
         #   bigtable = Google::Cloud::Bigtable.new
         #
         #   instances = bigtable.instances
-        #   instances.all do |instance|
+        #   instances do |instance|
         #     puts instance.instance_id
         #   end
 
-        def instances token: nil
+        def instances # remove token from public API. should always return list of all instances.
           ensure_service!
-          grpc = service.list_instances(token: token)
-          Instance::List.from_grpc(grpc, service)
+          grpc = service.list_instances
+          instances = Instance::List.from_grpc(grpc, service)
+          instances.all.map { |instance| instance }
         end
 
-        # Get an existing Bigtable instance.
+        # Get metadate of an existing Bigtable instance.
         #
         # @param instance_id [String] Existing instance id.
+        # Add `perform_lookup` param.
+        # @param perform_lookup [Boolean] Create instance object without verifying
+        #   that the instance resource exists.
+        #   Calls made on this object will raise errors if the instance
+        #   does not exist. Default value is `false`. Optional.
+        #   It helps to reduce admin apis calls.
         # @return [Google::Cloud::Bigtable::Instance, nil]
         #
         # @example
@@ -121,10 +130,14 @@ module Google
         #     puts instance.instance_id
         #   end
 
-        def instance instance_id
+        def instance instance_id, perform_lookup: nil
           ensure_service!
-          grpc = service.get_instance(instance_id)
-          Instance.from_grpc(grpc, service)
+          instance = Instance.from_path(
+                       service.instance_path(instance_id),
+                       service
+                     )
+          instance.reload! if perform_lookup
+          instance
         rescue Google::Cloud::NotFoundError
           nil
         end
@@ -139,7 +152,7 @@ module Google
         #   characters. Required.
         # @param display_name [String] The descriptive name for this instance as it
         #   appears in UIs. Must be unique per project and between 4 and 30
-        #   characters.
+        #   characters in length. Defaults to instance_id if left blank.
         # @param type [Symbol] The type of the instance.
         #   Valid values are `:DEVELOPMENT` or `:PRODUCTION`.
         #   Default `:PRODUCTION` instance will created if left blank.
@@ -174,6 +187,7 @@ module Google
         #
         #   bigtable = Google::Cloud::Bigtable.new
         #
+        #   I belive one example of PRODUCTIONS instance creation will be enough.
         #   job = bigtable.create_instance(
         #     "my-instance",
         #     display_name: "Instance for user data",
@@ -229,7 +243,7 @@ module Google
           labels = Hash[labels.map { |k, v| [String(k), String(v)] }] if labels
 
           instance_attrs = {
-            display_name: display_name,
+            display_name: display_name || instance_id,
             type: type,
             labels: labels
           }.delete_if { |_, v| v.nil? }
@@ -252,7 +266,8 @@ module Google
         end
 
         # List all clusters in project.
-        #
+        # If token are not implemented and will not be implemented in the future.
+        # this should be removed from the API
         # @param token [String] The `token` value returned by the last call to
         #   `clusters` indicates that this is a continuation of a call
         #   and the system should return the next page of data.
@@ -268,12 +283,17 @@ module Google
         #     puts cluster.ready?
         #   end
 
-        def clusters token: nil
+        def clusters # remove token from public API.
+                     # Should always return list of all clusters in the project
           ensure_service!
-          grpc = service.list_clusters("-", token: token)
-          Cluster::List.from_grpc(grpc, service, instance_id: "-")
+          grpc = service.list_clusters("-")
+          clusters = Cluster::List.from_grpc(grpc, service, instance_id: "-")
+          clusters.all.map { |cluster| cluster }
         end
 
+        # There should be an option to create an instance without lookup (no RPC)
+        # In that case `list_tables` should only exist in `instance.rb` and removed
+        # from `project.rb`
         # List all tables for given instance.
         #
         # @param instance_id [String] Existing instance Id.
@@ -290,14 +310,14 @@ module Google
         #     puts table.column_families
         #   end
 
-        def tables instance_id
+        def tables instance_id # remove this method after adding `perform_lookup` to `bigtable.instance`
           ensure_service!
           grpc = service.list_tables(instance_id)
           Table::List.from_grpc(grpc, service)
         end
 
+        # After adding `perform_lookup` to `bitable.instance` method there is no need for `table` method in `project.rb`
         # Get table information.
-        #
         #
         # @param instance_id [String] Existing instance Id.
         # @param table_id [String] Existing table Id.
@@ -375,7 +395,7 @@ module Google
         #     p row
         #   end
 
-        def table \
+        def table \ # remove this method after adding `perform_lookup` to `bigtable.instance`
             instance_id,
             table_id,
             view: nil,
@@ -469,7 +489,7 @@ module Google
         #
         #   p table
 
-        def create_table \
+        def create_table \ # same, remove this method in favor of instance.create_table method after `perform_lookup` is added to `instance`
             instance_id,
             table_id,
             column_families: nil,
@@ -503,7 +523,7 @@ module Google
         #
         #   bigtable.delete_table("my-instance", "my-table")
         #
-        def delete_table instance_id, table_id
+        def delete_table instance_id, table_id # same as above, remve this method in favor of `instance.delete_table`
           service.delete_table(instance_id, table_id)
           true
         end
@@ -555,6 +575,7 @@ module Google
         #
         #   p table.column_families
 
+        # remove this method in favor of `table.modify_column_families`
         def modify_column_families instance_id, table_id, modifications
           ensure_service!
           Table.modify_column_families(
