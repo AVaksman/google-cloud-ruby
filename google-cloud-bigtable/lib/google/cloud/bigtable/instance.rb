@@ -33,6 +33,7 @@ module Google
       # {Google::Cloud::Bigtable::Project#instance}, and
       # {Google::Cloud::Bigtable::Project#create_instance}.
       #
+      # Matter of opinion, but give example of creation of a `PRODUCTION` type instance?
       # @example
       #   require "google/cloud/bigtable"
       #
@@ -41,10 +42,9 @@ module Google
       #   job = bigtable.create_instance(
       #     "my-instance",
       #     "Instance for user data",
-      #     type: :DEVELOPMENT,
-      #     labels: { "env" => "dev"}
+      #     labels: { "env" => "prod"}
       #   ) do |clusters|
-      #     clusters.add("test-cluster", "us-east1-b", nodes: 1)
+      #     clusters.add("test-cluster", "us-east1-b", nodes: 3)
       #   end
       #
       #   job.done? #=> false
@@ -67,6 +67,7 @@ module Google
         # @private
         #
         # Creates a new Instance instance.
+        
         def initialize grpc, service
           @grpc = grpc
           @service = service
@@ -143,8 +144,7 @@ module Google
           state == :CREATING
         end
 
-        # Instance type. Possible values are `:DEVELOPMENT`, `:PRODUCTION`,
-        # `:TYPE_UNSPECIFIED`
+        # The current instance type. Possible values are `:DEVELOPMENT`, `:PRODUCTION`.
         #
         # @return [Symbol]
 
@@ -178,10 +178,11 @@ module Google
         # Set instance type.
         #
         # Valid values are `:DEVELOPMENT`, `:PRODUCTION`.
-        # After a development instance is created, it can be upgraded
-        # by updating the instance to type `PRODUCTION`.
-        # An instance created as a production instance cannot be changed to a
-        # development instance.
+        # After creation a development type instance can be upgraded to production type.
+        # To upgrade set the instance type to `PRODUCTION` and `save` the instance.
+        #
+        # An instance created as a production type instance cannot be changed to a
+        # development type instance.
         #
         # @param instance_type [Symbol]
 
@@ -189,14 +190,14 @@ module Google
           @grpc.type = instance_type
         end
 
-        # Get instance labels.
+        # Instance labels.
         #
-        # Cloud Labels are a flexible and lightweight mechanism for organizing
+        # Labels are a flexible and lightweight mechanism for organizing
         # cloud resources into groups that reflect a customer's organizational
-        # needs and deployment strategies. Cloud Labels can be used to filter
-        # collections of resources, to control how resource
-        # metrics are aggregated, and as arguments to policy
-        # management rules (e.g., route, firewall, load balancing, etc.).
+        # needs and deployment strategies. Labels can be used to filter
+        # collections of resources. They can be used to control how resource
+        # metrics are aggregated. And they can be used as arguments to policy
+        # management rules (e.g. route, firewall, load balancing, etc.).
         #
         # * Label keys must be between 1 and 63 characters long and must conform
         #   to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
@@ -210,9 +211,9 @@ module Google
           @grpc.labels
         end
 
-        # Set the Cloud Labels.
+        # Set the Instance Labels.
         #
-        # @param labels [Hash{String=>String}] The Cloud Labels.
+        # @param labels [Hash{String=>String}] The Instance Labels.
 
         def labels= labels
           labels ||= {}
@@ -225,10 +226,11 @@ module Google
         # Update instance.
         #
         # Updatable attributes are :
-        #   * `display_name` - The descriptive name for this instance.
-        #   * `type` -  `:DEVELOPMENT` type instance can be upgraded to `:PRODUCTION` instance.
-        #     An instance created as a production instance cannot be changed to a development instance.
-        #   * `labels` - Cloud Labels are a flexible and lightweight mechanism for organizing cloud resources.
+        #   I do not think we need the description of the attributes. Just listing should be enough.
+        #   Each of these attributes is described in `bigtable.create_instance` documentation.
+        #   * `display_name`
+        #   * `type`
+        #   * `labels`
         #
         # @return [Google::Cloud::Bigtable::Instance::Job]
         #   The job representing the long-running, asynchronous processing of
@@ -257,17 +259,20 @@ module Google
         #     puts instance.labels
         #   end
 
+        # After adding `perform_lookup` to `bigtable.instance` this function might need to be refactored
+        # to update ontly those attributes/paths which are present in this instance objenct
         def save
           ensure_service!
-          update_mask = Google::Protobuf::FieldMask.new(
-            paths: %w[labels display_name type]
-          )
+          update_mask = Google::Protobuf::FieldMask.new
+          update_mask.paths << "labels" if grpc.labels.empty?
+          update_mask.display_name << "display_name" if grpc.display_name.empty?
+          update_mask.type << "type" if grpc.type.empty?
           grpc = service.partial_update_instance(@grpc, update_mask)
           Instance::Job.from_grpc(grpc, service)
         end
         alias update save
 
-        # Reload instance information.
+        # Reload metadata iformation for this instance.
         #
         # @return [Google::Cloud::Bigtable::Instance]
 
@@ -294,11 +299,12 @@ module Google
           true
         end
 
-        # Lists information about clusters in an instance.
+        # Lists clusters in this instance.
         #
         #  See to delete {Google::Cloud::Bigtable::Cluster#delete} and update
         #  cluster {Google::Cloud::Bigtable::Cluster#save}.
         #
+        # token should be removed from public API
         # @param token [String] The `token` value returned by the last call to
         #   `clusters`; indicates that this is a continuation of a call
         #   and that the system should return the next page of data.
@@ -312,14 +318,15 @@ module Google
         #
         #   instance = bigtable.instance("my-instance")
         #
-        #   instance.clusters.all do |cluster|
+        #   instance.clusters do |cluster|
         #     puts cluster.cluster_id
         #   end
 
-        def clusters token: nil
+        def clusters token: nil # remove token from the public API
           ensure_service!
           grpc = service.list_clusters(instance_id, token: token)
-          Cluster::List.from_grpc(grpc, service, instance_id: instance_id)
+          clusters = Cluster::List.from_grpc(grpc, service, instance_id: instance_id)
+          clusters.all.map { |cluster| cluster }
         end
 
         # Gets cluster information.
@@ -328,6 +335,12 @@ module Google
         #  cluster {Google::Cloud::Bigtable::Cluster#save}.
         #
         # @param cluster_id [String] The unique ID of the requested cluster.
+        # Add `perform_lookup` param.
+        # @param perform_lookup [Boolean] Create cluster object without verifying
+        #   that the cluster resource exists.
+        #   Calls made on this object will raise errors if the cluster
+        #   does not exist. Default value is `false`. Optional.
+        #   It helps to reduce admin apis calls.
         # @return [Google::Cloud::Bigtable::Cluster, nil]
         #
         # @example
@@ -335,15 +348,19 @@ module Google
         #
         #   bigtable = Google::Cloud::Bigtable.new
         #
-        #   instance = bigtable.instance("my-instance")
+        #   instance = bigtable.instance("my-instance", perform_lookup: false)
         #
         #   cluster = instance.cluster("my-instance-cluster")
         #   puts cluster.cluster_id
 
         def cluster cluster_id
           ensure_service!
-          grpc = service.get_cluster(instance_id, cluster_id)
-          Cluster.from_grpc(grpc, service)
+          cluster = Cluster.from_path(
+                      service.cluster_path(instance_id, cluster_id),
+                      service
+                    )
+          cluster.reload! if perform_lookup
+          cluster
         rescue Google::Cloud::NotFoundError
           nil
         end
@@ -365,6 +382,7 @@ module Google
         #   Valid types are:
         #     * `:SSD` - Flash (SSD) storage.
         #     * `:HDD` - Magnetic drive (HDD).
+        #   If left blanc a cluster with a Flash (SSD) storage type will be created.
         # @return [Google::Cloud::Bigtable::Cluster::Job]
         #
         # @example
@@ -420,21 +438,17 @@ module Google
         #
         #   instance = bigtable.instance("my-instance")
         #
-        #   # Default name-only view
-        #   instance.tables.all do |table|
-        #     puts table.name
-        #   end
-        #
-        #   # Full view
-        #   instance.tables(view: :FULL).all do |table|
-        #     puts table.name
+        #   # Default (NAME_ONLY) view
+        #   instance.tables do |table|
+        #     puts table.table_id
         #     puts table.column_families
         #   end
         #
         def tables
           ensure_service!
           grpc = service.list_tables(instance_id)
-          Table::List.from_grpc(grpc, service)
+          tables = Table::List.from_grpc(grpc, service)
+          tables.all.map { |table| table }
         end
 
         # Get metadata information of table.
@@ -447,11 +461,11 @@ module Google
         #   * `:SCHEMA_VIEW` - Only populates `name` and fields related to the table's schema
         #   * `:REPLICATION_VIEW` - Only populates `name` and fields related to the table's replication state.
         #   * `:FULL` - Populates all fields
-        # @param perform_lookup [Boolean] Creates table object without verifying
-        #   that the table resource exists.
-        #   Calls made on this object will raise errors if the table
-        #   does not exist. Default value is `false`. Optional.
-        #   Helps to reduce admin API calls.
+        # @param perform_lookup [Boolean] Indicates whether to create a table object with or without verification
+        #   that a table resource with this table_id exists on the server.
+        #   Calls made on unverified object will raise errors if the table resource with this table_id
+        #   does not exist on the server. Default value is `false`. Optional.
+        #   It helps to reduce admin apis calls.
         # @param app_profile_id [String] The unique identifier for the app profile. Optional.
         #   Used only in data operations.
         #   This value specifies routing for replication. If not specified, the
@@ -465,14 +479,14 @@ module Google
         #
         #   instance = bigtable.instance("my-instance")
         #
-        #   # Default view is full view
+        #   # Default view is SCHEMA_VIEW
         #   table = instance.table("my-table", perform_lookup: true)
-        #   puts table.name
+        #   puts table.table_id
         #   puts table.column_families
         #
         #   # Name-only view
         #   table = instance.table("my-table", view: :NAME_ONLY, perform_lookup: true)
-        #   puts table.name
+        #   puts table.table_id
         #
         # @example  Mutate rows
         #   require "google/cloud/bigtable"
@@ -494,16 +508,11 @@ module Google
         def table table_id, view: nil, perform_lookup: nil, app_profile_id: nil
           ensure_service!
 
-          table = if perform_lookup
-                    grpc = service.get_table(instance_id, table_id, view: view)
-                    Table.from_grpc(grpc, service, view: view)
-                  else
-                    Table.from_path(
-                      service.table_path(instance_id, table_id),
-                      service
-                    )
-                  end
-
+          table = Table.from_path(
+                    service.table_path(instance_id, table_id),
+                    service
+                  )
+          table.reload!(view) if perform_lookup
           table.app_profile_id = app_profile_id
           table
         rescue Google::Cloud::NotFoundError
@@ -515,7 +524,7 @@ module Google
         # The table can be created with a full set of initial column families,
         # specified in the request.
         #
-        # @param name [String]
+        # @param table_id [String]
         #   The name by which the new table should be referred to within the parent
         #   instance, e.g., `foobar`
         # @param column_families [Hash{String => Google::Cloud::Bigtable::ColumnFamily}]
@@ -564,7 +573,7 @@ module Google
         #   instance = bigtable.instance("my-instance")
         #
         #   table = instance.create_table("my-table")
-        #   puts table.name
+        #   puts table.table_id
         #
         # @example Create table with column families and initial splits.
         #   require "google/cloud/bigtable"
@@ -590,7 +599,7 @@ module Google
         # add `app_profile_id` field to this method. this way `app_pprofile_id` could be passed
         # to every `read` and `write` operation that is called on this table object. 
         def create_table \
-            name,
+          table_id,
             column_families: nil,
             granularity: nil,
             initial_splits: nil,
@@ -600,7 +609,7 @@ module Google
           table = Table.create(
                     service,
                     instance_id,
-                    name,
+                    table_id,
                     column_families: column_families,
                     granularity: granularity,
                     initial_splits: initial_splits,
@@ -610,9 +619,9 @@ module Google
           table
         end
 
-        # Create app profile for an instance with a routing policy.
-        # Only one routing policy can applied to app profile. The policy can be
-        # multi-cluster routing or single cluster routing.
+        # Create app profile with routing policy.
+        # Only one routing policy can be applied to app profile. It can be
+        # multi cluster routing or single cluster routing.
         #
         # @param name [String] Unique Id of the app profile
         # @param routing_policy [Google::Bigtable::Admin::V2::AppProfile::SingleClusterRouting | Google::Bigtable::Admin::V2::AppProfile::MultiClusterRoutingUseAny]
@@ -627,8 +636,10 @@ module Google
         #   * `single_cluster_routing` - Unconditionally routes all read/write requests
         #     to a specific cluster. This option preserves read-your-writes consistency
         #     but does not improve availability.
-        #     Value contains `cluster_id` and optional field `allow_transactional_writes`.
-        # @param description [String] Description of the use case for this app profile
+        #     Value contains required field `cluster_id` and
+        #     optional field `allow_transactional_writes`, if left blanc, defaults to `false`.
+        #     See [SingleClusterRouting](https://cloud.google.com/bigtable/docs/reference/admin/rpc/google.bigtable.admin.v2#singleclusterrouting)
+        # @param description [String] Description of the use case for this AppProfile
         # @param etag [String]
         #   Strongly validated etag for optimistic concurrency control. Preserve the
         #   value returned from `GetAppProfile` when calling `UpdateAppProfile` to
@@ -659,7 +670,7 @@ module Google
         #     routing_policy: routing_policy,
         #     description: "App profile for user data instance"
         #   )
-        #   puts app_profile.name
+        #   puts app_profile.app_profile_id
         #
         # @example Create an app profile with multi-cluster routing policy
         #   require "google/cloud/bigtable"
@@ -675,7 +686,7 @@ module Google
         #     routing_policy,
         #     description: "App profile for user data instance"
         #   )
-        #   puts app_profile.name
+        #   puts app_profile.app_profile_id
         #
         # @example Create app profile and ignore warnings.
         #   require "google/cloud/bigtable"
@@ -692,10 +703,10 @@ module Google
         #     description: "App profile for user data instance",
         #     ignore_warnings: true
         #   )
-        #   puts app_profile.name
+        #   puts app_profile.app_profile_id
 
         def create_app_profile \
-            name,
+            app_profile_id,
             routing_policy,
             description: nil,
             etag: nil,
@@ -718,7 +729,7 @@ module Google
 
           grpc = service.create_app_profile(
             instance_id,
-            name,
+            app_profile_id,
             Google::Bigtable::Admin::V2::AppProfile.new(app_profile_attrs),
             ignore_warnings: ignore_warnings
           )
@@ -743,7 +754,7 @@ module Google
         #   app_profile = instance.app_profile("my-app-profile")
         #
         #   if app_profile
-        #     puts app_profile.name
+        #     puts app_profile.app_profile_id
         #   end
 
         def app_profile app_profile_id
@@ -770,13 +781,14 @@ module Google
         #   instance = bigtable.instance("my-instance")
         #
         #   instance.app_profiles.all do |app_profile|
-        #     puts app_profile.name
+        #     puts app_profile.app_profile_id
         #   end
 
         def app_profiles
           ensure_service!
           grpc = service.list_app_profiles(instance_id)
-          AppProfile::List.from_grpc(grpc, service)
+          app_profiles = AppProfile::List.from_grpc(grpc, service)
+          app_profiles.all.map { |app_profile| app_profile }
         end
 
         # Gets the [Cloud IAM](https://cloud.google.com/iam/) access control
@@ -808,7 +820,7 @@ module Google
         #   instance = bigtable.instance("my-instance")
         #
         #   instance.policy do |p|
-        #     p.add("roles/owner", "user:owner@example.com")
+        #     p.add("roles/bigtable.admin", "user:admin@example.com")
         #   end # 2 API calls
 
         def policy
@@ -841,7 +853,7 @@ module Google
         #   instance = bigtable.instance("my-instance")
         #
         #   policy = instance.policy
-        #   policy.add("roles/owner", "user:owner@example.com")
+        #   policy.add("roles/bigtable.user", "user:owner@example.com")
         #   updated_policy = instance.update_policy(policy)
         #
         #   puts update_policy.roles
@@ -872,6 +884,8 @@ module Google
         #   * bigtable.tables.delete
         #   * bigtable.tables.get
         #   * bigtable.tables.list
+        #   For a complete list of Bigable permissions
+        #   See(https://cloud.google.com/bigtable/docs/access-control#permissions)
         #
         # @return [Array<Strings>] The permissions that have access.
         #

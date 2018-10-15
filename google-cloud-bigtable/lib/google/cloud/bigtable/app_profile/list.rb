@@ -36,6 +36,8 @@ module Google
             super(arr)
           end
 
+          # @private
+          #
           # Whether there is a next page of instances.
           #
           # @return [Boolean]
@@ -55,6 +57,8 @@ module Google
             grpc.next_page?
           end
 
+          # @private
+          #
           # Retrieves the next page of app_profiles.
           #
           # @return [AppProfile::List] The list of instances.
@@ -78,6 +82,8 @@ module Google
             self.class.from_grpc(grpc, service)
           end
 
+          # @private
+          #
           # Retrieves remaining results by repeatedly invoking {#next} until
           # {#next?} returns `false`. Calls the given block once for each
           # result, which is passed as the argument to the block.
