@@ -235,7 +235,7 @@ module Google
 
         def create_cluster instance_id, cluster_id, cluster
           unless cluster.location == ""
-            cluster.location = location_path(cluster.location)
+            cluster.location = location_path(cluster.location_zone)
           end
 
           execute do

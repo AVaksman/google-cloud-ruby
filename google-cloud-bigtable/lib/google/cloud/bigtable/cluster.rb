@@ -83,7 +83,7 @@ module Google
           @grpc.name
         end
 
-        # The current instance state.
+        # The current cluster state.
         # Possible values are
         # `:CREATING`, `:READY`, `:STATE_NOT_KNOWN`, `:RESIZING`, `:DISABLED`.
         #
@@ -155,7 +155,7 @@ module Google
         # For example, "us-east1-b"
         #
         # @return [String]
-        def location
+        def location_zone
           @grpc.location.split("/")[3]
         end
 
@@ -169,7 +169,7 @@ module Google
 
         # Update cluster.
         #
-        # `serve_nodes` is the only updatable field
+        # Updatable field is number of serve_nodes.
         #
         # @return [Google::Cloud::Bigtable::Cluster::Job]
         #   The job representing the long-running, asynchronous processing of
@@ -246,6 +246,22 @@ module Google
         # @param service [Google::Cloud::Bigtable::Service]
         # @return [Google::Cloud::Bigtable::Cluster]
         def self.from_grpc grpc, service
+          new(grpc, service)
+        end
+
+        # Add option to create Cluster object from path
+        # @private
+        #
+        # Creates a new Cluster instance from cluster path.
+        # 
+        # @param path [String] CLuster path.
+        #   Formatted CLuster path
+        #   +projects/<project>/instances/<instance>/clusters/<cluster>+
+        # @param service [Google::Cloud::Bigtable::Service]
+        # @return [Google::Cloud::Bigtable::Cluster]
+
+        def self.from_path path, service
+          grpc = Google::Bigtable::Admin::V2::Cluster.new(name: path)
           new(grpc, service)
         end
 

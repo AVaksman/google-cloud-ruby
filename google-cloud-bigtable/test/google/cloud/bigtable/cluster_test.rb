@@ -19,7 +19,7 @@ describe Google::Cloud::Bigtable::Cluster, :mock_bigtable do
   it "knows the identifiers" do
     instance_id = "test-instance"
     cluster_id = "test-cluster"
-    location = "us-east-1b"
+    location_zone = "us-east-1b"
     nodes = 3
 
     cluster_grpc = Google::Bigtable::Admin::V2::Cluster.new(
@@ -37,8 +37,8 @@ describe Google::Cloud::Bigtable::Cluster, :mock_bigtable do
     cluster.cluster_id.must_equal cluster_id
     cluster.path.must_equal cluster_path(instance_id, cluster_id)
     cluster.nodes.must_equal nodes
-    cluster.location.must_equal location
-    cluster.location_path.must_equal location_path(location)
+    cluster.location_zone.must_equal location_zone
+    cluster.location_path.must_equal location_path(location_zone)
     cluster.state.must_equal :READY
     cluster.must_be :ready?
     cluster.wont_be :creating?
