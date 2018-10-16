@@ -164,13 +164,13 @@ module Google
             family.columns.each do |column|
               column.cells.each do |cell|
                 row_cell = Row::Cell.new(
-                  family.name,
+                  family.column_family_id,
                   column.qualifier,
                   cell.timestamp_micros,
                   cell.value,
                   cell.labels
                 )
-                row.cells[family.name] << row_cell
+                row.cells[family.column_family_id] << row_cell
               end
             end
           end

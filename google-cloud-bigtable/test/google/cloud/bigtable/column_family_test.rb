@@ -20,7 +20,7 @@ describe Google::Cloud::Bigtable::ColumnFamily, :mock_bigtable do
   let(:table_id) { "test-table" }
 
   it "knows the identifiers" do
-    cf_name = "cf"
+    cf_id = "cf"
     gc_rule_grpc = Google::Bigtable::Admin::V2::GcRule.new(max_num_versions: 3)
     cf_grpc = Google::Bigtable::Admin::V2::ColumnFamily.new(
       gc_rule: gc_rule_grpc
@@ -28,7 +28,7 @@ describe Google::Cloud::Bigtable::ColumnFamily, :mock_bigtable do
     column_family = Google::Cloud::Bigtable::ColumnFamily.from_grpc(
       cf_grpc,
       bigtable.service,
-      name: cf_name,
+      column_family_id: cf_id,
       instance_id: instance_id,
       table_id: table_id
     )
@@ -37,7 +37,7 @@ describe Google::Cloud::Bigtable::ColumnFamily, :mock_bigtable do
     column_family.gc_rule.wont_be :nil?
     column_family.gc_rule.must_be_kind_of Google::Cloud::Bigtable::GcRule
     column_family.gc_rule.max_versions.must_equal 3
-    column_family.name.must_equal cf_name
+    column_family.column_family_id.must_equal cf_id
     column_family.table_id.must_equal table_id
     column_family.instance_id.must_equal instance_id
   end
@@ -47,7 +47,7 @@ describe Google::Cloud::Bigtable::ColumnFamily, :mock_bigtable do
     column_family = Google::Cloud::Bigtable::ColumnFamily.from_grpc(
       cf_grpc,
       bigtable.service,
-      name: "cf",
+      column_family_id: "cf",
       instance_id: instance_id,
       table_id: table_id
     )
