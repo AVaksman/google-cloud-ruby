@@ -33,7 +33,7 @@ describe Google::Cloud::Bigtable::AppProfile, :mock_bigtable do
     app_profile.must_be_kind_of Google::Cloud::Bigtable::AppProfile
     app_profile.project_id.must_equal project_id
     app_profile.instance_id.must_equal instance_id
-    app_profile.name.must_equal app_profile_id
+    app_profile.app_profile_id.must_equal app_profile_id
     app_profile.path.must_equal app_profile_path(instance_id, app_profile_id)
     app_profile.description.must_equal description
     app_profile.multi_cluster_routing.must_equal routing_policy

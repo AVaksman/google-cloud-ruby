@@ -108,7 +108,7 @@ module Google
           #   app_profiles = instance.app_profiles
           #
           #   instance.app_profiles.all do |app_profile|
-          #     puts app_profile.name
+          #     puts app_profile.app_profile_id
           #   end
           #
           # @example Using the enumerator by not passing a block:
@@ -119,7 +119,7 @@ module Google
           #   instance = bigtable.instance("my-instance")
           #
           #   all_snapshot_ids = instance.app_profiles.all.map do |app_profile|
-          #     app_profile.name
+          #     app_profile.app_profile_id
           #   end
           #
           def all

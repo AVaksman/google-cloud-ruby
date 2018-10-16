@@ -75,7 +75,7 @@ module Google
         # The unique identifier for the app profile.
         #
         # @return [String]
-        def name
+        def app_profile_id
           @grpc.name.split("/")[5]
         end
 
@@ -271,7 +271,7 @@ module Google
         #     puts job.error
         #   else
         #     app_profile = job.app_profile
-        #     puts app_profile.name
+        #     puts app_profile.app_profile_id
         #   end
 
         def save ignore_warnings: false
