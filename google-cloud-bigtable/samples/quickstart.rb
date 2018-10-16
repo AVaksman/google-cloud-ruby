@@ -25,13 +25,13 @@ require "google-cloud-bigtable"
 INSTANCE_NAME = "my-bigtable-instance"
 
 #  The name of the Cloud Bigtable table
-TABLE_NAME = "my-table"
+TABLE_ID = "my-table"
 
 gcloud = Google::Cloud.new
 bigtable = gcloud.bigtable
 
 # Get table client
-table = bigtable.table(INSTANCE_NAME, TABLE_NAME)
+table = bigtable.table(INSTANCE_ID, TABLE_ID)
 
 # Read and print row
 pp table.read_row("user00000001")

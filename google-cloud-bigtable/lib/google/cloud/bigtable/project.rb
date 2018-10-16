@@ -306,7 +306,7 @@ module Google
         #   bigtable = Google::Cloud::Bigtable.new
         #
         #   bigtable.tables("my-instance").all do |table|
-        #     puts table.name
+        #     puts table.table_id
         #     puts table.column_families
         #   end
 
@@ -345,7 +345,7 @@ module Google
         #
         #   table = bigtable.table("my-instance", "my-table", perform_lookup: true, view: :SCHEMA_VIEW)
         #   if table
-        #     p table.name
+        #     p table.table_id
         #     p table.column_families
         #   end
         #
@@ -363,7 +363,7 @@ module Google
         #
         #   table = bigtable.table("my-instance", "my-table", view: :FULL, perform_lookup: true)
         #   if table
-        #     puts table.name
+        #     puts table.table_id
         #     p table.column_families
         #     p table.cluster_states
         #   end
@@ -468,7 +468,7 @@ module Google
         #   bigtable = Google::Cloud::Bigtable.new
         #
         #   table = bigtable.create_table("my-instance", "my-table")
-        #   puts table.name
+        #   puts table.table_id
         #
         # @example Create table with column families and initial splits.
         #   require "google/cloud/bigtable"

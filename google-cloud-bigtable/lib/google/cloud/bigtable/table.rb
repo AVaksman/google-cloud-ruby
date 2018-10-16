@@ -73,7 +73,7 @@ module Google
         def initialize grpc, service, view: nil
           @grpc = grpc
           @service = service
-          @view = view || :SCHEMA_VIEW
+          @view = view || :NAME_ONLY
         end
 
         # The unique identifier for the project.
@@ -93,7 +93,7 @@ module Google
         # The unique identifier for the table.
         #
         # @return [String]
-        def name
+        def table_id
           @grpc.name.split("/")[5]
         end
         alias table_id name
@@ -120,7 +120,7 @@ module Google
         # @return [Google::Cloud::Bigtable::Table]
 
         def reload! view: nil
-          @view = view || :SCHEMA_VIEW
+          @view = view
           @grpc = service.get_table(instance_id, name, view: view)
           self
         end
@@ -178,7 +178,7 @@ module Google
           granularity == :MILLIS
         end
 
-        # Permanently deletes the table from a instance.
+        # Permanently deletes the table from the instance.
         #
         # @return [Boolean] Returns `true` if the table was deleted.
         #
@@ -246,6 +246,7 @@ module Google
         #
         #   bigtable = Google::Cloud::Bigtable.new
         #
+        #   remove this example after removing `bigtable.table` method
         #   table = bigtable.table("my-instance", my-table)
         #
         #   # OR get table from Instance object.
@@ -627,7 +628,7 @@ module Google
         #
         def self.from_path path, service
           grpc = Google::Bigtable::Admin::V2::Table.new(name: path)
-          new(grpc, service, view: :NAME_ONLY)
+          new(grpc, service)
         end
 
         protected

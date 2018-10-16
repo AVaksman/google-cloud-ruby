@@ -37,7 +37,7 @@ describe Google::Cloud::Bigtable::Table, :mock_bigtable do
     table.must_be_kind_of Google::Cloud::Bigtable::Table
     table.project_id.must_equal project_id
     table.instance_id.must_equal instance_id
-    table.name.must_equal table_id
+    table.table_id.must_equal table_id
     table.path.must_equal table_path(instance_id, table_id)
 
     table.granularity.must_equal :MILLIS

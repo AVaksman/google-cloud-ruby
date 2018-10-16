@@ -70,7 +70,7 @@ describe Google::Cloud::Bigtable::Table, :modify_column_families, :mock_bigtable
 
     updated_table.project_id.must_equal project_id
     updated_table.instance_id.must_equal instance_id
-    updated_table.name.must_equal table_id
+    updated_table.table_id.must_equal table_id
     updated_table.path.must_equal table_path(instance_id, table_id)
     updated_table.granularity.must_equal :MILLIS
     updated_table.column_families.map(&:name).sort.must_equal column_families.keys

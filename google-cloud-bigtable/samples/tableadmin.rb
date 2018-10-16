@@ -32,7 +32,7 @@ def run_table_operations instance_id, table_id
     puts "==> Table does not exist. Creating table `#{table_id}`"
     # [START bigtable_create_table]
     table = bigtable.create_table(instance_id, table_id)
-    puts "==> Table created #{table.name}\n"
+    puts "==> Table created #{table.table_id}\n"
     # [END bigtable_create_table]
   end
 
@@ -169,7 +169,7 @@ def delete_table instance_id, table_id
   table.delete
   #  [END bigtable_delete_table]
 
-  puts "==> Table deleted: #{table.name}"
+  puts "==> Table deleted: #{table.table_id}"
   puts "\n"
 end
 

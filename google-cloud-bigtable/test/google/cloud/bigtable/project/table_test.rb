@@ -42,7 +42,7 @@ describe Google::Cloud::Bigtable::Project, :table, :mock_bigtable do
 
     table.project_id.must_equal project_id
     table.instance_id.must_equal instance_id
-    table.name.must_equal table_id
+    table.table_id.must_equal table_id
     table.path.must_equal table_path(instance_id, table_id)
     table.granularity.must_equal :MILLIS
     table.cluster_states.map(&:cluster_name).sort.must_equal cluster_states.keys
